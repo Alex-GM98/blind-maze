@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: blind-maze
+    env: node
+    buildCommand: npm install
+    startCommand: node server/index.js
+    envVars:
+      - key: NODE_VERSION
+        value: ~20.0.0
