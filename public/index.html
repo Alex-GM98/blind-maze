@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Blind Maze — Multiplayer Board Game</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;900&display=swap" rel="stylesheet" />
+</head>
+<body class="landing-body">
+  <div class="landing-bg"></div>
+  <main class="landing-container">
+    <div class="landing-logo">
+      <span class="logo-icon">🌀</span>
+      <h1 class="logo-title">Blind Maze</h1>
+      <p class="logo-sub">A multiplayer board game of fog, fate, and fortune</p>
+    </div>
+
+    <div class="landing-cards">
+      <!-- HOST CARD -->
+      <div class="role-card host-card" id="hostCard">
+        <div class="role-card-icon">👁️</div>
+        <h2>Host a Game</h2>
+        <p>You see the full map. Guide chaos from above. Set the board, watch players suffer.</p>
+        <div class="host-settings">
+          <label>Board Width <span id="widthVal">10</span></label>
+          <input type="range" id="boardWidth" min="8" max="16" value="10" />
+          <label>Board Height <span id="heightVal">10</span></label>
+          <input type="range" id="boardHeight" min="8" max="16" value="10" />
+        </div>
+        <a href="/host.html" id="hostBtn" class="btn btn-primary btn-large">Open Host View</a>
+      </div>
+
+      <!-- PLAYER CARD -->
+      <div class="role-card player-card" id="playerCard">
+        <div class="role-card-icon">🧭</div>
+        <h2>Join a Game</h2>
+        <p>Map the maze yourself. Survive bad tiles, spend your loot, and find the Exit first.</p>
+        <div class="join-form">
+          <input type="text" id="playerName" placeholder="Enter your name…" maxlength="20" autocomplete="off" />
+        </div>
+        <a href="#" id="joinBtn" class="btn btn-accent btn-large">Join Game</a>
+      </div>
+    </div>
+
+    <footer class="landing-footer">2–6 Players &bull; 🎲 d20 Tile Effects &bull; Real-time Multiplayer</footer>
+  </main>
+
+  <script>
+    const widthSlider = document.getElementById('boardWidth');
+    const heightSlider = document.getElementById('boardHeight');
+    const widthVal = document.getElementById('widthVal');
+    const heightVal = document.getElementById('heightVal');
+    widthSlider.addEventListener('input', () => widthVal.textContent = widthSlider.value);
+    heightSlider.addEventListener('input', () => heightVal.textContent = heightSlider.value);
+
+    document.getElementById('hostBtn').addEventListener('click', (e) => {
+      e.preventDefault();
+      const w = widthSlider.value;
+      const h = heightSlider.value;
+      window.location.href = `/host.html?w=${w}&h=${h}`;
+    });
+
+    document.getElementById('joinBtn').addEventListener('click', (e) => {
+      e.preventDefault();
+      const name = document.getElementById('playerName').value.trim();
+      if (!name) { document.getElementById('playerName').focus(); return; }
+      window.location.href = `/player.html?name=${encodeURIComponent(name)}`;
+    });
+
+    document.getElementById('playerName').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') document.getElementById('joinBtn').click();
+    });
+  </script>
+</body>
+</html>

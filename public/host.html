@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Blind Maze — Host View</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;900&display=swap" rel="stylesheet" />
+</head>
+
+<body class="host-body">
+
+    <!-- LOBBY SCREEN -->
+    <div id="lobbyScreen" class="screen">
+        <div class="lobby-panel">
+            <div class="logo-small">👁️ Blind Maze <span class="badge-host">HOST</span></div>
+            <h2>Waiting for Players…</h2>
+            <p class="lobby-hint">Share your game URL with players so they can join:</p>
+            <div class="url-box" id="shareUrl"></div>
+            <div class="player-list-label">Players Joined (<span id="playerCount">0</span>/6):</div>
+            <ul class="lobby-player-list" id="lobbyPlayers"></ul>
+            <button id="startBtn" class="btn btn-primary btn-large" disabled>Start Game</button>
+            <div class="lobby-settings">Board: <span id="lobbySize"></span></div>
+        </div>
+    </div>
+
+    <!-- GAME SCREEN -->
+    <div id="gameScreen" class="screen hidden">
+        <div class="host-layout">
+
+            <!-- LEFT: Board -->
+            <div class="panel board-panel">
+                <div class="panel-header">
+                    <span class="logo-small">👁️ Full Map</span>
+                    <span id="roundLabel" class="round-badge">Round 0</span>
+                </div>
+                <div id="hostBoard" class="grid-board"></div>
+                <div class="tile-legend">
+                    <span class="legend-item"><span class="legend-dot dot-empty"></span>Empty</span>
+                    <span class="legend-item"><span class="legend-dot dot-good"></span>Good</span>
+                    <span class="legend-item"><span class="legend-dot dot-bad"></span>Bad</span>
+                    <span class="legend-item"><span class="legend-dot dot-shop"></span>Shop</span>
+                    <span class="legend-item"><span class="legend-dot dot-exit"></span>Exit</span>
+                    <span class="legend-item"><span class="legend-dot dot-start"></span>Start</span>
+                </div>
+            </div>
+
+            <!-- MIDDLE: Players -->
+            <div class="panel players-panel">
+                <div class="panel-header">👥 Players</div>
+                <div id="playerCards" class="player-cards-list"></div>
+                <div class="host-actions">
+                    <button id="endGameBtn" class="btn btn-danger">End Game</button>
+                </div>
+            </div>
+
+            <!-- RIGHT: Event Log -->
+            <div class="panel log-panel">
+                <div class="panel-header">📋 Event Log</div>
+                <ul id="eventLog" class="event-log"></ul>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- END SCREEN -->
+    <div id="endScreen" class="screen hidden">
+        <div class="end-panel">
+            <div class="end-trophy">🏆</div>
+            <h1 id="endWinner"></h1>
+            <p id="endReason"></p>
+            <h3>Final Scores</h3>
+            <ul id="finalScores" class="final-scores"></ul>
+            <a href="/" class="btn btn-primary btn-large">New Game</a>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/host.js"></script>
+</body>
+
+</html>

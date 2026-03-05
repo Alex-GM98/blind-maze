@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Blind Maze — Player View</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;900&display=swap" rel="stylesheet" />
+</head>
+
+<body class="player-body">
+
+    <!-- LOBBY SCREEN -->
+    <div id="lobbyScreen" class="screen">
+        <div class="lobby-panel player-lobby">
+            <div class="logo-small">🧭 Blind Maze</div>
+            <h2 id="lobbyWelcome">Joined! Waiting for host to start…</h2>
+            <p class="lobby-hint">Other players in the room:</p>
+            <ul id="lobbyPlayers" class="lobby-player-list"></ul>
+            <div class="waiting-spinner">⏳ Waiting for host…</div>
+        </div>
+    </div>
+
+    <!-- GAME SCREEN -->
+    <div id="gameScreen" class="screen hidden">
+        <div class="player-layout">
+
+            <!-- TOP BAR -->
+            <div class="player-topbar">
+                <div class="topbar-name" id="playerNameDisplay"></div>
+                <div class="topbar-turn" id="turnIndicator"></div>
+                <div class="topbar-coins">💰 <span id="coinsDisplay">30</span></div>
+            </div>
+
+            <div class="player-main">
+
+                <!-- LEFT: Map -->
+                <div class="panel map-panel">
+                    <div class="panel-header">🗺️ Your Map <span class="fog-badge">FOG OF WAR</span></div>
+                    <div id="playerBoard" class="grid-board player-grid"></div>
+                    <div class="tile-legend">
+                        <span class="legend-item"><span class="legend-dot dot-empty"></span>Empty</span>
+                        <span class="legend-item"><span class="legend-dot dot-good"></span>Good</span>
+                        <span class="legend-item"><span class="legend-dot dot-bad"></span>Bad</span>
+                        <span class="legend-item"><span class="legend-dot dot-shop"></span>Shop</span>
+                        <span class="legend-item"><span class="legend-dot dot-exit"></span>Exit</span>
+                        <span class="legend-item"><span class="legend-dot dot-start"></span>Start</span>
+                    </div>
+                </div>
+
+                <!-- RIGHT: Controls + Inventory -->
+                <div class="player-sidebar">
+
+                    <!-- Movement -->
+                    <div class="panel controls-panel">
+                        <div class="panel-header">🕹️ Move</div>
+                        <div class="dpad">
+                            <button class="dpad-btn dpad-up" id="moveUp" data-dir="up">▲</button>
+                            <button class="dpad-btn dpad-left" id="moveLeft" data-dir="left">◀</button>
+                            <button class="dpad-btn dpad-center">✦</button>
+                            <button class="dpad-btn dpad-right" id="moveRight" data-dir="right">▶</button>
+                            <button class="dpad-btn dpad-down" id="moveDown" data-dir="down">▼</button>
+                        </div>
+                        <div id="moveHint" class="move-hint">Wait for your turn…</div>
+                    </div>
+
+                    <!-- Buffs -->
+                    <div class="panel buffs-panel" id="buffsPanel">
+                        <div class="panel-header">✨ Active Buffs</div>
+                        <div id="buffsDisplay" class="buffs-display">No active buffs</div>
+                    </div>
+
+                    <!-- Inventory -->
+                    <div class="panel inventory-panel">
+                        <div class="panel-header">🎒 Inventory</div>
+                        <div id="inventoryList" class="inventory-list">
+                            <div class="empty-inv">No items yet</div>
+                        </div>
+                    </div>
+
+                    <!-- Players in Game -->
+                    <div class="panel others-panel">
+                        <div class="panel-header">👥 All Players</div>
+                        <div id="otherPlayers" class="others-list"></div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- FEED (bottom) -->
+            <div class="player-feed" id="playerFeed"></div>
+        </div>
+    </div>
+
+    <!-- END SCREEN -->
+    <div id="endScreen" class="screen hidden">
+        <div class="end-panel">
+            <div class="end-trophy" id="endEmoji">🏆</div>
+            <h1 id="endWinner"></h1>
+            <p id="endReason"></p>
+            <h3>Final Scores</h3>
+            <ul id="finalScores" class="final-scores"></ul>
+            <a href="/" class="btn btn-primary btn-large">Play Again</a>
+        </div>
+    </div>
+
+    <!-- SHOP MODAL -->
+    <div id="shopModal" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="modal-header">🛒 Shop <span class="modal-coins">💰 <span id="shopCoins">0</span></span></div>
+            <div id="shopItems" class="shop-items"></div>
+            <button id="shopClose" class="btn btn-secondary">Close Shop</button>
+        </div>
+    </div>
+
+    <!-- ITEM USE MODAL (for Bomb / Teleport Stone) -->
+    <div id="itemModal" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="modal-header" id="itemModalTitle">Use Item</div>
+            <div id="itemModalContent"></div>
+            <div class="modal-actions">
+                <button id="itemModalConfirm" class="btn btn-primary">Confirm</button>
+                <button id="itemModalCancel" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- WHEEL MODAL -->
+    <div id="wheelModal" class="modal-overlay hidden">
+        <div class="modal wheel-modal">
+            <div class="modal-header">🎲 Tile Event!</div>
+            <div class="wheel-container">
+                <div class="wheel-pointer">▼</div>
+                <div class="wheel" id="spinWheel"></div>
+            </div>
+            <div id="wheelResult" class="wheel-result">Spinning...</div>
+            <div class="modal-actions" style="justify-content: center; margin-top: 1rem;">
+                <button id="wheelClose" class="btn btn-primary hidden">Continue</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/shop.js"></script>
+    <script src="/js/player.js"></script>
+</body>
+
+</html>
