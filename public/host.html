@@ -22,6 +22,7 @@
             <ul class="lobby-player-list" id="lobbyPlayers"></ul>
             <button id="startBtn" class="btn btn-primary btn-large" disabled>Start Game</button>
             <div class="lobby-settings">Board: <span id="lobbySize"></span></div>
+            <button id="customizeBtn" class="btn btn-secondary" style="margin-top: 1rem;">Customize Sprites</button>
         </div>
     </div>
 
@@ -44,6 +45,21 @@
                     <span class="legend-item"><span class="legend-dot dot-exit"></span>Exit</span>
                     <span class="legend-item"><span class="legend-dot dot-start"></span>Start</span>
                 </div>
+
+                <!-- Map Edit Palette -->
+                <div id="editPalette" class="hidden"
+                    style="margin-top: 1rem; border-top: 1px solid var(--border); padding-top: 1rem;">
+                    <div style="font-weight: bold; margin-bottom: 0.5rem; color: var(--gold);">🖌️ Paint Tile:</div>
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <button class="btn btn-secondary palette-btn" data-type="empty">Path</button>
+                        <button class="btn btn-secondary palette-btn" data-type="wall">Wall</button>
+                        <button class="btn btn-secondary palette-btn" data-type="good">Good</button>
+                        <button class="btn btn-secondary palette-btn" data-type="bad">Bad</button>
+                        <button class="btn btn-secondary palette-btn" data-type="shop">Shop</button>
+                        <button class="btn btn-secondary palette-btn" data-type="start">Start</button>
+                        <button class="btn btn-secondary palette-btn" data-type="exit">Exit</button>
+                    </div>
+                </div>
             </div>
 
             <!-- MIDDLE: Players -->
@@ -51,7 +67,9 @@
                 <div class="panel-header">👥 Players</div>
                 <div id="playerCards" class="player-cards-list"></div>
                 <div class="host-actions">
-                    <button id="endGameBtn" class="btn btn-danger">End Game</button>
+                    <button id="toggleEditMapBtn" class="btn btn-primary"
+                        style="margin-bottom: 0.5rem; width: 100%;">Map Editor: OFF</button>
+                    <button id="endGameBtn" class="btn btn-danger" style="width: 100%;">End Game</button>
                 </div>
             </div>
 
@@ -76,7 +94,72 @@
         </div>
     </div>
 
+    <!-- SPRITE MODAL -->
+    <div id="spriteModal" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="modal-header">🎨 Customize Sprites</div>
+
+            <div style="max-height: 60vh; overflow-y: auto; padding-right: 10px;">
+                <h4 style="margin-bottom: 0.5rem;">Tiles</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 1rem;">
+                    <label>Good <input type="text" id="sprite-good" maxlength="2" class="input-field"
+                            style="width: 50px;" value="★"></label>
+                    <label>Bad <input type="text" id="sprite-bad" maxlength="2" class="input-field" style="width: 50px;"
+                            value="✖"></label>
+                    <label>Shop <input type="text" id="sprite-shop" maxlength="2" class="input-field"
+                            style="width: 50px;" value="🛒"></label>
+                    <label>Exit <input type="text" id="sprite-exit" maxlength="2" class="input-field"
+                            style="width: 50px;" value="🚪"></label>
+                    <label>Start <input type="text" id="sprite-start" maxlength="2" class="input-field"
+                            style="width: 50px;" value="◉"></label>
+                </div>
+
+                <h4 style="margin-bottom: 0.5rem;">Players</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 1rem;">
+                    <label>P1 <input type="text" id="sprite-p0" maxlength="2" class="input-field" style="width: 50px;"
+                            value="🔴"></label>
+                    <label>P2 <input type="text" id="sprite-p1" maxlength="2" class="input-field" style="width: 50px;"
+                            value="🔵"></label>
+                    <label>P3 <input type="text" id="sprite-p2" maxlength="2" class="input-field" style="width: 50px;"
+                            value="🟢"></label>
+                    <label>P4 <input type="text" id="sprite-p3" maxlength="2" class="input-field" style="width: 50px;"
+                            value="🟡"></label>
+                    <label>P5 <input type="text" id="sprite-p4" maxlength="2" class="input-field" style="width: 50px;"
+                            value="🟣"></label>
+                    <label>P6 <input type="text" id="sprite-p5" maxlength="2" class="input-field" style="width: 50px;"
+                            value="🟠"></label>
+                </div>
+
+                <h4 style="margin-bottom: 0.5rem;">Items & Buffs</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                    <label>Compass <input type="text" id="sprite-compass" maxlength="2" class="input-field"
+                            style="width: 50px;" value="🧭"></label>
+                    <label>Map <input type="text" id="sprite-map_fragment" maxlength="2" class="input-field"
+                            style="width: 50px;" value="🗺️"></label>
+                    <label>Sneakers <input type="text" id="sprite-sneakers" maxlength="2" class="input-field"
+                            style="width: 50px;" value="👟"></label>
+                    <label>Shield <input type="text" id="sprite-shield" maxlength="2" class="input-field"
+                            style="width: 50px;" value="🛡️"></label>
+                    <label>Bomb <input type="text" id="sprite-bomb" maxlength="2" class="input-field"
+                            style="width: 50px;" value="💣"></label>
+                    <label>Torch <input type="text" id="sprite-torch" maxlength="2" class="input-field"
+                            style="width: 50px;" value="🔦"></label>
+                    <label>Teleport <input type="text" id="sprite-teleport" maxlength="2" class="input-field"
+                            style="width: 50px;" value="💎"></label>
+                    <label>Gold Rush <input type="text" id="sprite-gold_rush" maxlength="2" class="input-field"
+                            style="width: 50px;" value="⚡"></label>
+                </div>
+            </div>
+
+            <div class="modal-actions" style="margin-top: 1.5rem;">
+                <button id="saveSpritesBtn" class="btn btn-primary">Save Changes</button>
+                <button id="cancelSpritesBtn" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/audio.js"></script>
     <script src="/js/host.js"></script>
 </body>
 

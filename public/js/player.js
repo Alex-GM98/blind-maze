@@ -4,13 +4,24 @@ const playerName = params.get('name') || 'Anonymous';
 
 let myId = null;
 let myState = null;   // { self, players, turnOrder, currentPlayerId, ... }
+let gameSettings = null;
 let boardW = 10, boardH = 10;
 let visitedMap = {};  // key: "x,y" -> tile type
 let pendingItemUse = null;
 
-const PLAYER_EMOJIS = ['🔴', '🔵', '🟢', '🟡', '🟣', '🟠'];
+function getPlayerEmoji(index) {
+    if (gameSettings && gameSettings.sprites && gameSettings.sprites.players) {
+        return gameSettings.sprites.players[index % gameSettings.sprites.players.length];
+    }
+    return ['🔴', '🔵', '🟢', '🟡', '🟣', '🟠'][index % 6];
+}
 
-// ── Screens ──
+function getItemIcon(item) {
+    if (gameSettings && gameSettings.sprites && gameSettings.sprites.items && item && item.id) {
+        return gameSettings.sprites.items[item.id] || item.icon;
+    }
+    return item ? item.icon : '';
+}
 function show(id) {
     document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
     document.getElementById(id).classList.remove('hidden');
@@ -40,9 +51,10 @@ socket.on('player:joined', ({ playerId, name }) => {
 socket.on('host:state', (data) => {
     // Update lobby player list
     if (data.status === 'lobby') {
+        gameSettings = data.settings;
         const ul = document.getElementById('lobbyPlayers');
         ul.innerHTML = Object.values(data.players).map((p, i) =>
-            `<li>${PLAYER_EMOJIS[i]} ${p.name}</li>`
+            `<li>${getPlayerEmoji(i)} ${p.name}</li>`
         ).join('');
     }
 });
@@ -51,10 +63,12 @@ socket.on('host:state', (data) => {
 socket.on('game:started', () => {
     show('gameScreen');
     addFeed('🎮 The game has started! Find the Exit to win!', 'system');
+    if (window.SoundFX) window.SoundFX.start();
 });
 
 socket.on('game:state', (data) => {
     myState = data;
+    gameSettings = data.settings;
     const self = data.self;
     if (!self) return;
 
@@ -121,9 +135,17 @@ function processMoveEffects(moveResults) {
                 : r.effect.type === 'loss' || r.effect.type === 'catastrophe' ? 'bad'
                     : r.effect.type === 'teleport' ? 'bad'
                         : 'system';
+
+            if (type === 'good' && window.SoundFX) window.SoundFX.coin();
+            else if (type === 'bad' && window.SoundFX) window.SoundFX.hurt();
+
             addFeed(r.effect.message, type);
             if (r.effect.roll) addFeed(`🎲 You rolled a ${r.effect.roll}`, 'system');
-            if (r.effect.itemReceived) addFeed(`📦 Got item: ${r.effect.itemReceived.icon} ${r.effect.itemReceived.name}`, 'good');
+            if (r.effect.itemReceived) {
+                if (window.SoundFX) window.SoundFX.item();
+                const icon = getItemIcon(r.effect.itemReceived);
+                addFeed(`📦 Got item: ${icon} ${r.effect.itemReceived.name}`, 'good');
+            }
             if (r.effect.expansion) addFeed('🗺️ The maze just got bigger!', 'system');
         }
         if (r.tile === 'exit') addFeed('🏁 You reached the EXIT!', 'system');
@@ -214,7 +236,7 @@ function renderFogBoard(px, py) {
 
             if (tileType) {
                 div.className = `tile tile-${tileType}`;
-                const icons = { good: '★', bad: '✖', shop: '🛒', exit: '🚪', start: '◉', empty: '' };
+                const icons = gameSettings?.sprites?.tiles || { good: '★', bad: '✖', shop: '🛒', exit: '🚪', start: '◉', empty: '' };
                 div.textContent = icons[tileType] || '';
             } else {
                 div.className = 'tile tile-fog';
@@ -271,7 +293,7 @@ function renderInventory(inventory) {
         const div = document.createElement('div');
         div.className = 'inv-item';
         div.innerHTML = `
-      <div class="inv-item-icon">${item.icon}</div>
+      <div class="inv-item-icon">${getItemIcon(item)}</div>
       <div class="inv-item-info">
         <div class="inv-item-name">${item.name}</div>
         <div class="inv-item-desc">${item.description}</div>
@@ -289,7 +311,7 @@ function renderOtherPlayers(players, currentId, turnOrder) {
         if (!p) return;
         const div = document.createElement('div');
         div.className = 'other-player' + (id === currentId ? ' active' : '');
-        div.innerHTML = `<span>${PLAYER_EMOJIS[i]} ${p.name}${id === myId ? ' (You)' : ''}${id === currentId ? ' ◀' : ''}</span><span class="other-coins">💰 ${p.coins}</span>`;
+        div.innerHTML = `<span>${getPlayerEmoji(i)} ${p.name}${id === myId ? ' (You)' : ''}${id === currentId ? ' ◀' : ''}</span><span class="other-coins">💰 ${p.coins}</span>`;
         otherPlayers.appendChild(div);
     });
 }
@@ -316,6 +338,7 @@ setMoveEnabled(false);
 
 function move(dir) {
     if (!myState || myState.currentPlayerId !== myId) return;
+    if (window.SoundFX) window.SoundFX.move();
     socket.emit('player:move', { direction: dir });
 }
 
@@ -455,12 +478,21 @@ function showWheelSpin(targetNumber, effectData, onComplete) {
     void wheel.offsetWidth;
 
     const targetAngle = (targetNumber - 1) * 18 + 9;
-    const finalRot = (360 * 4) - targetAngle; // 4 extra spins
+    const finalRot = (360 * 6) - targetAngle; // 6 extra spins for +1.5s duration
 
-    wheel.style.transition = 'transform 3s cubic-bezier(0.2, 0.8, 0.1, 1)';
+    wheel.style.transition = 'transform 4.6s cubic-bezier(0.2, 0.8, 0.1, 1)';
     wheel.style.transform = `rotate(${finalRot}deg)`;
 
+    // Play tick sounds as it spins
+    let tickCount = 0;
+    const tickInterval = setInterval(() => {
+        if (window.SoundFX) window.SoundFX.tick();
+        tickCount++;
+        if (tickCount > 25) clearInterval(tickInterval);
+    }, 150);
+
     setTimeout(() => {
+        clearInterval(tickInterval);
         resultText.textContent = `🎲 Rolled ${targetNumber}! ${effectData.message || ''}`;
         resultText.classList.add('highlight');
         closeBtn.classList.remove('hidden');
@@ -469,5 +501,13 @@ function showWheelSpin(targetNumber, effectData, onComplete) {
             modal.classList.add('hidden');
             if (onComplete) onComplete();
         };
-    }, 3100);
+    }, 4600);
 }
+
+socket.on('game:settings_updated', ({ settings }) => {
+    gameSettings = settings;
+    if (myState && myState.self) {
+        renderFogBoard(myState.self.x, myState.self.y);
+        renderOtherPlayers(myState.players, myState.currentPlayerId, myState.turnOrder);
+    }
+});

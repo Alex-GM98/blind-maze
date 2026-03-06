@@ -245,6 +245,30 @@ function createPlayer(id, name, x, y) {
 function createGameState(hostId, settings) {
     const { width, height } = settings;
     const board = generateBoard(width, height);
+
+    // Set default sprites if not provided
+    settings.sprites = settings.sprites || {
+        tiles: {
+            good: '★',
+            bad: '✖',
+            shop: '🛒',
+            exit: '🚪',
+            start: '◉',
+            empty: ''
+        },
+        players: ['🔴', '🔵', '🟢', '🟡', '🟣', '🟠'],
+        items: {
+            compass: '🧭',
+            map_fragment: '🗺️',
+            sneakers: '👟',
+            shield: '🛡️',
+            bomb: '💣',
+            torch: '🔦',
+            teleport: '💎',
+            gold_rush: '⚡'
+        }
+    };
+
     return {
         hostId,
         status: 'lobby',   // lobby | playing | finished

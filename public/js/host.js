@@ -5,7 +5,13 @@ const w = parseInt(params.get('w')) || 10;
 const h = parseInt(params.get('h')) || 10;
 
 let state = null;
-const PLAYER_EMOJIS = ['🔴', '🔵', '🟢', '🟡', '🟣', '🟠'];
+
+function getPlayerEmoji(index) {
+    if (state && state.settings && state.settings.sprites && state.settings.sprites.players) {
+        return state.settings.sprites.players[index % state.settings.sprites.players.length];
+    }
+    return ['🔴', '🔵', '🟢', '🟡', '🟣', '🟠'][index % 6];
+}
 
 // ── Screens ──
 function show(id) {
@@ -41,6 +47,16 @@ socket.on('game:turn', ({ currentPlayerId, currentPlayerName, round }) => {
     // Player cards updated in host:state
 });
 
+socket.on('game:settings_updated', ({ settings }) => {
+    if (state) state.settings = settings;
+    if (!document.getElementById('gameScreen').classList.contains('hidden')) {
+        renderBoard(state.board, state.players);
+        renderPlayerCards(state.players, state.turnOrder, state.currentTurnIndex);
+    } else if (!document.getElementById('lobbyScreen').classList.contains('hidden')) {
+        updateLobby(state);
+    }
+});
+
 socket.on('game:end', ({ winnerId, winnerName, reason, finalScores }) => {
     show('endScreen');
     document.getElementById('endWinner').textContent = `🏆 ${winnerName} Wins!`;
@@ -54,11 +70,17 @@ socket.on('game:end', ({ winnerId, winnerName, reason, finalScores }) => {
 socket.on('error', ({ message }) => alert('Error: ' + message));
 
 // ── Lobby ──
+let lastPlayerCount = 0;
 function updateLobby(data) {
     const players = Object.values(data.players);
+    if (players.length > lastPlayerCount) {
+        if (window.SoundFX) window.SoundFX.join();
+    }
+    lastPlayerCount = players.length;
+
     document.getElementById('playerCount').textContent = players.length;
     const ul = document.getElementById('lobbyPlayers');
-    ul.innerHTML = players.map((p, i) => `<li>${PLAYER_EMOJIS[i] || '👤'} ${p.name} — 💰 ${p.coins} coins</li>`).join('');
+    ul.innerHTML = players.map((p, i) => `<li>${getPlayerEmoji(i)} ${p.name} — 💰 ${p.coins} coins</li>`).join('');
     document.getElementById('startBtn').disabled = players.length < 2;
 }
 
@@ -80,7 +102,7 @@ function renderBoard(board, players) {
     const playerPos = {};
     Object.values(players).forEach((p, i) => {
         if (!playerPos[`${p.x},${p.y}`]) playerPos[`${p.x},${p.y}`] = [];
-        playerPos[`${p.x},${p.y}`].push(PLAYER_EMOJIS[i] || '👤');
+        playerPos[`${p.x},${p.y}`].push(getPlayerEmoji(i));
     });
 
     for (let y = 0; y < board.height; y++) {
@@ -90,7 +112,7 @@ function renderBoard(board, players) {
             div.className = `tile tile-${tile.type}`;
             div.title = `(${x},${y}) ${tile.type}`;
 
-            const icons = { good: '★', bad: '✖', shop: '🛒', exit: '🚪', start: '◉', empty: '' };
+            const icons = state?.settings?.sprites?.tiles || { good: '★', bad: '✖', shop: '🛒', exit: '🚪', start: '◉', empty: '' };
             div.textContent = icons[tile.type] || '';
 
             const here = playerPos[`${x},${y}`];
@@ -101,6 +123,14 @@ function renderBoard(board, players) {
                 div.textContent = '';
                 div.appendChild(marker);
             }
+
+            // Map Edit functionality
+            div.addEventListener('click', () => {
+                if (isEditMode && currentPaintTile) {
+                    socket.emit('host:edit_tile', { x, y, type: currentPaintTile });
+                }
+            });
+
             el.appendChild(div);
         }
     }
@@ -119,7 +149,7 @@ function renderPlayerCards(players, turnOrder, currentTurnIndex) {
         const buffs = Object.entries(p.buffs || {}).filter(([k, v]) => v > 0).map(([k, v]) => `${k}(${v})`).join(', ');
         const inv = p.inventory?.map(i => i.icon || '').join(' ') || '—';
         div.innerHTML = `
-      <div class="p-card-name">${PLAYER_EMOJIS[i]} ${p.name}${id === currentId ? ' <span style="color:var(--gold)">◀ Turn</span>' : ''}</div>
+      <div class="p-card-name">${getPlayerEmoji(i)} ${p.name}${id === currentId ? ' <span style="color:var(--gold)">◀ Turn</span>' : ''}</div>
       <div class="p-card-coins">💰 ${p.coins} coins</div>
       <div class="p-card-buffs">Buffs: ${buffs || 'none'}</div>
       <div class="p-card-inv">🎒 ${inv}</div>
@@ -143,3 +173,91 @@ function updateGame(data) {
         document.getElementById('roundLabel').textContent = `Round ${data.round}`;
     }
 }
+
+// ── Map Editor ──
+let isEditMode = false;
+let currentPaintTile = 'empty';
+
+document.getElementById('toggleEditMapBtn').addEventListener('click', (e) => {
+    isEditMode = !isEditMode;
+    e.target.textContent = `Map Editor: ${isEditMode ? 'ON' : 'OFF'}`;
+    e.target.className = isEditMode ? 'btn btn-secondary' : 'btn btn-primary';
+    document.getElementById('editPalette').classList.toggle('hidden', !isEditMode);
+    document.getElementById('hostBoard').style.cursor = isEditMode ? 'crosshair' : 'default';
+});
+
+document.querySelectorAll('.palette-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.palette-btn').forEach(b => b.classList.remove('btn-primary'));
+        document.querySelectorAll('.palette-btn').forEach(b => b.classList.add('btn-secondary'));
+        e.target.classList.remove('btn-secondary');
+        e.target.classList.add('btn-primary');
+        currentPaintTile = e.target.dataset.type;
+    });
+});
+// Set first paint tile as active
+document.querySelector('.palette-btn[data-type="empty"]').classList.add('btn-primary');
+document.querySelector('.palette-btn[data-type="empty"]').classList.remove('btn-secondary');
+
+
+// ── Sprite Customization ──
+const spriteModal = document.getElementById('spriteModal');
+
+document.getElementById('customizeBtn').addEventListener('click', () => {
+    if (state && state.settings && state.settings.sprites) {
+        const sprites = state.settings.sprites;
+        document.getElementById('sprite-good').value = sprites.tiles.good;
+        document.getElementById('sprite-bad').value = sprites.tiles.bad;
+        document.getElementById('sprite-shop').value = sprites.tiles.shop;
+        document.getElementById('sprite-exit').value = sprites.tiles.exit;
+        document.getElementById('sprite-start').value = sprites.tiles.start;
+        for (let i = 0; i < 6; i++) {
+            document.getElementById(`sprite-p${i}`).value = sprites.players[i] || '👤';
+        }
+        if (sprites.items) {
+            document.getElementById('sprite-compass').value = sprites.items.compass || '🧭';
+            document.getElementById('sprite-map_fragment').value = sprites.items.map_fragment || '🗺️';
+            document.getElementById('sprite-sneakers').value = sprites.items.sneakers || '👟';
+            document.getElementById('sprite-shield').value = sprites.items.shield || '🛡️';
+            document.getElementById('sprite-bomb').value = sprites.items.bomb || '💣';
+            document.getElementById('sprite-torch').value = sprites.items.torch || '🔦';
+            document.getElementById('sprite-teleport').value = sprites.items.teleport || '💎';
+            document.getElementById('sprite-gold_rush').value = sprites.items.gold_rush || '⚡';
+        }
+    }
+    spriteModal.classList.remove('hidden');
+});
+
+document.getElementById('cancelSpritesBtn').addEventListener('click', () => {
+    spriteModal.classList.add('hidden');
+});
+
+document.getElementById('saveSpritesBtn').addEventListener('click', () => {
+    const newSprites = {
+        tiles: {
+            good: document.getElementById('sprite-good').value || '★',
+            bad: document.getElementById('sprite-bad').value || '✖',
+            shop: document.getElementById('sprite-shop').value || '🛒',
+            exit: document.getElementById('sprite-exit').value || '🚪',
+            start: document.getElementById('sprite-start').value || '◉',
+            empty: ''
+        },
+        players: [],
+        items: {
+            compass: document.getElementById('sprite-compass').value || '🧭',
+            map_fragment: document.getElementById('sprite-map_fragment').value || '🗺️',
+            sneakers: document.getElementById('sprite-sneakers').value || '👟',
+            shield: document.getElementById('sprite-shield').value || '🛡️',
+            bomb: document.getElementById('sprite-bomb').value || '💣',
+            torch: document.getElementById('sprite-torch').value || '🔦',
+            teleport: document.getElementById('sprite-teleport').value || '💎',
+            gold_rush: document.getElementById('sprite-gold_rush').value || '⚡'
+        }
+    };
+    for (let i = 0; i < 6; i++) {
+        newSprites.players.push(document.getElementById(`sprite-p${i}`).value || '👤');
+    }
+
+    socket.emit('host:update_sprites', { sprites: newSprites });
+    spriteModal.classList.add('hidden');
+});

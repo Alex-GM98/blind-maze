@@ -113,6 +113,25 @@ io.on('connection', (socket) => {
         socket.emit('host:shop_refreshed');
     });
 
+    socket.on('host:update_sprites', ({ sprites }) => {
+        if (!gameState || socket.id !== hostSocketId) return;
+        gameState.settings.sprites = sprites;
+        // Broadcast new state so all clients update visually immediately
+        io.to('host').emit('host:state', hostGameState());
+        for (const pid of Object.keys(gameState.players)) {
+            io.to(pid).emit('game:settings_updated', { settings: gameState.settings });
+        }
+    });
+
+    socket.on('host:edit_tile', ({ x, y, type }) => {
+        if (!gameState || socket.id !== hostSocketId) return;
+        if (x >= 0 && x < gameState.board.width && y >= 0 && y < gameState.board.height) {
+            gameState.board.grid[y][x].type = type;
+            io.to('host').emit('host:state', hostGameState());
+            // We do not broadcast full state to players on tile edit; fog of war hides it anyway
+        }
+    });
+
     // ─── PLAYER ─────────────────────────────────────────────────────────────────
 
     socket.on('player:join', ({ name }) => {
